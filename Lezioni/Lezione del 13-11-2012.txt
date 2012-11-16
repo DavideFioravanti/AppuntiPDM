@@ -1,0 +1,2 @@
+Nel progetto InterceptEventTest c'è l'esempio di come si propagano gli eventi di tocco tra le varie View.
+Mettendo true in uno dei touch event, si escludono tutte le view successive.

@@ -1,0 +1,15 @@
+E' la lezione che ho perso formattando il pc...
+
+Abbiamo usato questi progetti
+
+
+Del capitolo 6 sono
+InterceptEventTest
+ViewListnerTest
+
+del capitolo 5
+SimpleAdapterTest
+ArrayAdapterTest
+SimpeListActivity
+
+poi bo?

@@ -1,0 +1,106 @@
+I Thread
+
+	Mentre nel processo c'è un flusso di esecuzine ed ogni processo ha risorse separate, i thread hanno una memoria condivisa.
+- I thread hanno uno stato di esecuzione (running, ready blocked)
+-un contesto che è salvato quando il thread non è in esecuzione
+-uno stack di esecuzione
+-spazio di memoria statico per le variabili locali
+-...
+-...
+
+
+Di solito si avranno un processo, un thread principale e poi tanti thread sotto di lui
+
+Condivisione delle risorse (uso dei thread) vantaggi e svantaggi:
+VANTAGGI:
+-maggiore efficienza:
+	I) Creare e cancellare thread è più veloce (meno info da duplicare, creare e cancellare)
+	II) Lo scheduling tra thread dello stesso processo è molto più veloce che tra processi
+	III) Cooperazione di più thread nello stesso task porta maggiore throughput e performance
+		(es. mentre un thread legge dati sul disco, un'altro può far girare la GUI)
+SVANTAGGI:
+-maggiore complessità di progettazione e programmazinoe:
+	I) i processi devono essere "pensati" paralleli
+	II) sincronizzazione tra i thread
+	III) gestion dello scheduling tra i thread può essere demandato all'utente
+
+Lavorando in parallelo può succedere che un thread modifichi le variabili di un'altro thread
+Un esempio però di vantaggio di thread paralleli, può essere un server che gestisce entrambi contemporaneamente
+
+
+Thread in JAVA
+IL thread è una classe che implementa il metodo run()
+- Per scrivere il metodo run() ho 2 possibilità:
+	Estendere la classe Thread
+	Implementare l'interfaccia Runnable (di solito si usa sempre questo)
+
+ESEMPIO:
+class MyThread extends Thread {
+	public void run() {
+		System.out.println("thread running ...");
+	}
+}
+
+class ThreadEx{
+	public static void main (String [] args){
+		MyThread t= new MyThread());
+		t.start();
+	}
+}
+
+
+-----------
+
+
+
+Thread.currentThread() ritorna l'attuale thread (utile se il thread viene lanciato da qualcun'altro)
+
+
+-----
+
+Conviene sincronizzare 2 thread perchè:
+	- proteggo le risorse condivise tra i 2 thread
+	- oppure posso gestire proprio il tempo e dire comincia thread 1 stop thread 1 comincia thread 2 ecc...
+----
+
+Metodi syncronized
+
+un thread syncronized blcoca le risorse e finchè non finisce, gli altri thread non partono
+
+----
+
+Cosa sincornizzare:
+	-Il costruttore no!
+	-si possono sincronizzare i set e i get in modo che più thread non possono accedere allo stesso dato
+		e modificarlo contemporaneamente
+	-Se invece so che prendere i dati potrebbe essere lento (scaricamento file da internet) ovviamente non conviene
+----
+Tuttavia posso sincronizzare anche solo dei piccoli pezzi di codice, cioè posso bloccare dei valori
+Per esempio blocco un contatore per riportarlo a 0 e tutti gli altri aspettano che questo valore sia sbloccato
+----
+Con Syncronized posso bloccare un oggetto ma non posso dire quale thread acceda per primo a quel valore
+Anche dando una priorità più alta ad un thread non è detto che arrivi per primo.
+----
+Per fare ciò java ci mette a disposizione 3 oggetti per sincronizzare:
+	-wait() Il thread si ferma fino a quando non viene svegliato da un'altro thread
+	-notify() Sveglia un thread
+	-notifyAll() Sveglia tutti i thread
+----
+Il problema che può sorgere con questi metodi sincronizzati può avvenire un DeadLock
+In pratica un thread blocca un valore (sezione critica) ed entra nel thread 2... intanto il thread 2 blocca un valore
+ed aspetta il valore che è stato bloccato nel thread 1. A questo punto si aspettano a vicenda e tutti rimangono fermi! BAM!
+----
+Se io nel manifest scrivo
+<activity android:name="SecondActivity" android:process=":new_process"/>
+questa activity verrà lanciata in un PROCESSO completamente differente con la sua memoria ecc..
+posso anche lavorare con più programmi su uno stesso processo mio.. ma devono avere lo stesso certificato
+----
+I processi sono odinati per importanza a seconda dei componente che eseguono e dello stato di questi
+Livelli:
+	- Foreground process :processo con cui l'utente sta interagendo (direttamente o indirettamente)
+	- Visible process :è in vista ma non totalmente (es: c'è un dialog sopra)
+	- Service process :un servizio in esecuzione
+	- Background process :Una activity nascosta
+	- Empty process :un processo che non ha componenti in esecuzione
+----
+Se un processo dipende da un'altro, il primo verrà aumentato di livello allo stesso del secondo

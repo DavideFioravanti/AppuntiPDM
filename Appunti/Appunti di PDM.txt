@@ -1,0 +1,3 @@
+Le classi cominciano con la lettera maiuscola gli oggetti con quella minuscola
+
+Il tempo di solito si misura in long
