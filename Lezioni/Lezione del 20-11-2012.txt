@@ -1,0 +1,194 @@
+Le operazioni più lunghe di 5 secondi vengono considerate "Long Operation", ed in questo caso Android riprende il controllo del thread e chiede se si
+vuole bloccare il programma.
+
+((Button)findViewById(R.id.Button01)).setOnClickListener(
+new OnClickListener(){
+@Override
+public void onClick(View v){
+new Thread (new Runnable(){
+	@Override
+	public void run(){
+		int result = doLongOperation();
+		UpdateUI(result); // QUesta operazione aggiorna gli oggetti grafici, ma facendo ciò vengono toccati oggetti creati in un'altro thread (quello grafico)
+	}			  // e quindi android ci darà errore perchè solo il main thread avrà l'autorizzazione di interaggire con le view
+})).start();
+}
+...
+
+----
+
+Non posso bloccare il main thread
+Non posso accedere agli oggetti grafici da un altro thread
+
+----
+
+Soluzione 1
+
+*) INviare il codice con l0aggiornamento al main thread (Il codice è contenuto nel metodo run di Runnable)
+
+(C'erano scritti i metodi usati ma non ho fatto in tempo a copiarlo)
+
+----
+
+public void onClick(View v){
+	new Thread (new Runnable(){
+		public void run(){
+			final Bitmap bitmap = loadImageFromNetwork(
+				"http://example.com/image.png");
+			mImageView.post(new Runnable(){ //Questo è il pezzo di codice che viene mandato nel thread principale
+				public void run(){
+					mImageView.setImageBitmap(bitmap);
+				}
+			});
+		}
+	}).start();
+}
+...
+
+----
+
+Soluzione 2
+
+*) Inviare un messaggio al main thread
+*) I messaggi sono gestiti mediante una coda (ogni messaggio viene gestito nel main thread che possiede la coda)
+*) Gli oggetti che gesticono 	uesti messaggi si chiamano Handler (Alcuni messaggi sono speciali e contengono una Runnable simile alla soluzione di prima)
+
+----
+
+Esempio Handler 1
+
+...
+final Handler myHandler = new Handler(){
+	public void handleMessage(Message msg){
+		updateUI((String)msg.obj);
+	}};
+...
+(new Thread ( new Runnable(){
+	public void run(){
+		Message msg = myHandler.obtainMessage();
+		msg.obj = doLongOperation();
+		myHandler.sendMessage(msg); // se io nn chiamavo questo metodono la classe precedente non sarebbe mai stata chiamata
+	}
+})).start();
+...
+
+----
+
+final Handler handler = new Handler(){
+	public void handleMessage(android.os.Message msg){
+		switch (msg.what){
+			case 0:
+				doSomething();
+				break;
+			case 1:
+				doSomethingElse();
+				break;
+			default:
+				super.handleMessage(msg);
+		}
+	}
+};
+...
+android.os.Message newmsg = handler.obtainMessage(1); //oppure 0 oppure niente
+Bundle b = new BUndle();
+b.putString("key","value");
+newmsg.setData(b);
+handler.sendMessage(newmsg);
+
+//Questo è il metodo più facile da usare perchè cmq crea meno problemi rispetto a quello precedente
+//comunque nulla ci vieta di usare sezioni critiche cioè prendere magari variabili globali bloccarle e modificarle come avevamo visto la scorsa lezione
+
+----
+//Anche con l'handler si possono inviare dati
+final Handler myHandler = new Handler();
+...
+(new Thread(new Runnable(){
+	public void run
+
+(C'era un'altro pezzo ma non sono riuscito a copiarlo)
+
+----
+
+*) L'Handler è una classe e permette di scambiare Message e/o Runnable.
+*) Un Handler è associato solo al thread che lo ha creato [Gli Handler si agganciano al thread che li crea]
+
+----
+
+Metodi dell'Handler
+
+*) Metodi per Message:
+	- handler.sendMessage(Message)
+	- handler.sendMessageAtFrontOfQueue(Message)
+	- handler.sendMessageAtTime(Message,long)
+	- handler.sendMessageDelayed(Message,long)
+
+*) Metodi per Runnable:
+	- handler.post(Runnable)
+	- handler.postDelayed(Runnable,long)
+	- handler.postAtTime(Runnable,long)
+
+----
+
+*) post(Runnable r)
+	public final boolean post(Runnable r){
+		return sendMessageDelayed(getPostMessage(r),0); //Impacchetta il Runnable in un Message richiedendo delay 0... quindi anche le runnable sono messaggi
+	}
+
+----
+
+*) Runnable to Message
+	- getPostMessage(Runnable)
+		private final Message getPostMessage(Runnable r)
+		{	
+			Message m = Message.obtain();
+			m.callback = r;
+			return m;
+		}
+----
+
+Funzionamento Handler 3
+
+*) SendMessageDelayed(Message,long)
+	public final boolean sendMessageDelayed (Message msg, long delayMillis)
+	{
+		if (delyMillis<0)
+		delayMilli
+.... (non ho copiato :( ...)
+
+----
+
+Funzionamento Handler 4
+
+Quà mi sono completamente perso.... devo vedere le slide su internet...
+
+
+----
+
+Sia se mando messaggi (SendMessage) sia se mando runnable (post) vanno a finire nella stessa coda... dopo di che dispatchMessage capisce se è un messaggio o
+una Runnable a questo punto li splitta ed esegue la runnable oppure fa qualche cosa col messaggio
+
+----
+
+Cosa è il Looper
+*) Il Looper è una classe che gestisce la coda
+*) Il Looper è associato al thread
+*) La gestione dei messaggi è totalmente asincrona
+*) Il Looper è di un Thread e solo di quel Thread... Una volta agganciato non si può ne creare un'altro ne sganciare
+*) Il legame nel main Thread è già creato, negli altri thread esistono 2 emtodi per prepararli e usarli
+
+----
+
+Thread Local
+
+*) Il Looper offre disaccoppiamento tra Thread: il Thread che accoda il messaggio può essere diverso da quello che lo riceverà
+*) La classe Looper ha un costruttore privato che ne impeisce l'extends.
+*) All'interno ha un attributo static final di tipo THreadLocal che memoriazza un nuovo Looper per ciascun THread che invoca Looper.prepare().
+
+[Con il looper abbiamo definito delle variabili globali che a seconda del thread in cui mi trovo avrà un diverso looper]
+
+----
+
+Metodi del Looper
+
+*) Offre i seguenti metodi di gestione:
+	-Statici
