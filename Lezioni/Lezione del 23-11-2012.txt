@@ -1,0 +1,165 @@
+Per trasformare un thread in un Pipeline Thread si usa il looper
+
+----
+
+Nel main.c dopo l'inizio del programma l'activiti si blocca nel Looper.loop() e ci rimane fino alla fine
+
+----
+
+Looper.prepare();
+handler = new Handler();
+Looper.loop();
+
+Poichè il programma si blocca nel Looper.loop(), inviando dati all'handler, il programma li comincerà ad eseguire appena gli arrivano
+
+----
+
+Creazione del looper
+
+Looper.prepare()
+
+	public static final void prepare()
+	{
+		if (sTHreadLocal.get()!=null){
+			throw new RuntimeException("ONly one Looper may be created per thread");
+		}
+	sThreadLocal.set([new looper???]);
+
+----
+
+
+public static final void loop(){
+	Lopper me = myLooper(); //devo prendere il looper perchè è un metodo statico...
+	MessageQueue queue = me.mQueue; //oggetto di istanza
+
+	while(true){
+		msg = queue.next();
+		if (msg != null){
+			if (msg.target == null) //No taget is a magic identifier for the quit message.
+				return; // se il messaggio non ha target vuol dire che vogliamo uscire dal looper
+				msg.target.dispatchMessage(msg);
+				msg.recycle(); //Serve per non dover creare un nuovo messaggio e consumare nuova memoria
+		}
+	}
+}
+
+----
+
+looper.quit() manda un messaggio vuoto alla coda con target non settato
+
+----
+
+Associazione Handler-Looper
+
+L'handler serve per mandare un messaggio al looper. Un handler senza looper non può esistere.
+
+Dentro al costruttore dell'Handler:
+
+mLooper = Looper.myLooper();
+if (mLooper == null){
+	throw new RuntimeException(
+		"Can't create handler inside thread that has not called Looper.prepare()");
+}
+mQueue = mLooper.mQUeue; //La coda usata dall'Handler è presa dal Looper
+mCallback = null;
+}
+
+----
+
+Looper
+
+Il looper è una classe che gestisce una MessageQUeue ed è associata ad un THread.
+
+UN Looper è associato solo ad un singolo Thread ma può essere legato a più Handler. //Per esempio in grafica android crea un handler ma anche noi
+
+Un looper gestisce i dati in modo asincrono. Il legame tra THread e Looper si crea a seguito della chiamata del metodo Looper.prepare()
+
+----
+
+THread Local
+
+Un problema della programmazione multithread è che un thread veda le sue proprie variabili statiche.
+
+Avendo il costruttore private non può essere esteso
+
+Non posso mai staccare un looper dal suo handler
+
+----
+
+Tuttavia possiamo forzare l'associazione tra i thread e i looper, ma si può solo associare un looper già esistente ad un thread che vogliamo noi...
+Quindi posso creare un Handler senza fare looper.prepare(), ma solo se fornisco un looper esistente anche se già associato ad un altro thread.
+
+----
+
+Errori comuni 1
+
+----
+
+Non si può settare il target 
+setTarget
+
+----
+
+Ogni cosa che facciamo è un messaggio nel looper. Quando noi avviamo una activity, android lancia un messaggio per lanciare oncreate
+
+----
+
+Azioni periodiche
+
+Runnable threadTask = new Runnable() {
+	public void run(){
+		while(true){
+			try{
+				Thread.sleep(2000);
+			}catch (InterruptedException e){
+				.....
+
+non è detto che funzionerà precisamente ogni 2 secondi perchè per eseguire l'opreazione dopo lo sleep ci vorrà del tempo..
+comincerà a sfasare piano piano...
+
+
+quindi 
+
+o si crea un thread mette uno sleep
+
+o post delayed nel looper 
+
+----
+
+oppure si mette un Timer
+
+TImerTask timerTask = new TImerTask(){
+	@OVerride
+	public void run(){
+		doSomething();
+	}
+};
+
+Timer timer = new Timer();
+
+timer.shedule......
+
+----
+
+AsyncTask
+
+class MyAsyncTask extends AsyncTask <Integer, String, Long>{ //la classe che passiamo, la classe che passiamo in progress, la calsse per i tipi di ritorno
+	protected Long doInBackground(Integer ... params){
+		long start=System.currentTimeMillis();
+		for (Integer integer : params){
+			publishProgress("start processing "+integer);
+				doLongOperation();
+			publishProgress("done processing "+integer);
+		}
+		return start - System.currentTimeMillis();
+}
+protected void onProgressUpdate(String... values){
+		updateUI(values[0]);
+}
+protected void onPostExecute(Long time){
+	updateUI("Done with all the operations, it took:" + time + "millisecondes");
+}
+protected void onPreExecute(){
+	updateUI("Starting process");
+}
+public ....
