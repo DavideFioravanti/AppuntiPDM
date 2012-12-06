@@ -1,0 +1,267 @@
+Gestione dei dati
+
+Shared Preferences
+	-Memorizza dati primitivi in coppie chiave-valore
+Internal Storage
+	-Memorizza dati privati nella memoria del dispositivo
+External Storage
+	-Memorizza dati pubblici nella memoria esterna condivisa
+SQLite Databases
+	-Memorizza dati strutturati in database privati
+
+Network Connection
+	-Memorizza dati su web server
+
+----
+
+Shared Preferences
+
+Framework per la gestione delle preferenze delle applicazioni
+
+Per prendere le preferenze esistono 2 sistemi, uno completo e uno più semplice:
+
+public SharedPreferences getSharedPreferences ( String name, int mode)
+-metodo di Context (l'Activity è una sottoclasse? di Context)
+-name: identificatore delle preferenze
+-mode: modalità di accesso
+	Context.MODE_PRIVATE
+	Context.MODE_WORLD_READABLE
+	Context.MODE_WORLD_WRITEABLE
+
+public SharedPreferences getPreferences (int mode)
+-dati locali all'Activity
+
+----
+
+boolean getBoolean (String key, boolean defValue)
+float getFloat (String key, float defValue)
+int getInt (String key, int defValue)
+long getLong (String key, long defValue)
+String getString (String key, String defValue)
+
+Altrimenti si possono prendere tt i valori e metterli dentro una mappa
+Map <String, ?> getAll()
+
+SharedPreferences.EDitor edit()
+-ritorna un editor per modificare le preferenze
+Con questo metodo non si fa un new, ma si chiede un oggetto... quindi ha lo stesso funzionamento di una factory
+
+----
+
+Scrive una preferenza
+SharedPreferences prefs = getSharedPreferences(MY_PREFERENCES, Context.MODE_PRIVATE);
+Legge una preferenza
+String textData = prefs.getString("key","No Preferences!");
+
+----
+
+Editor
+
+Funziona più o meno come il git... prima si inseriscono tt le modifiche da fare e poi si "committa"
+
+SharedPreferences.Editor putBoolean (String key, boolean value)
+SharedPreferences.Editor putFloat (String key, float value)
+.... ecc
+Questi metodi restituiscono un Editor perchè così si possono concatenare come si faceva con i menù!
+
+SharedPreferences.Editor clear()
+-prepara la cancellazione di tutti i valori
+SharedPreferences.Editor remove (String key)
+-prepara la rimozione di un valore
+
+void apply()
+boolean commit()
+-esegue le modifiche (neanche il prof sa la differenza tra i due metodi)
+
+----
+
+Esempio
+
+SharedPreferences prefs = getSharedPreferences(MY_PREFERENCES, Context.MODE_PRIVATE);
+
+SharedPreferences.Editor editor = prefs.edit();
+
+...
+	editor.putString(TEXT_DATA_KEY, textData.toString());
+	editor.commit();
+...
+
+----
+
+Gestione preferenze
+
+Esiste una classe in android che ci aiuta a creare activity per le preferenze
+
+Classi in android.preference
+	-PreferenceActivity
+	-Preference
+
+Ogni riga delle preferenze è scritta in un file xml
+La PreferenceActivity serve a visualizzare preferenze
+	-il root tag è <PreferenceScreen>
+	-contiene elementi specializzazioni di "Preference"
+
+----
+
+Esempi di comandi da usare nelel preference
+
+CheckBoxPreference
+DialogPreference
+EditTextPreference
+ListPreference
+RingtonePreference
+
+----
+
+Esempio
+
+<?xml version="1.0" encoding="utf8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orderingFromXml="true">
+	<EditTextPreference android:order="1" android:key="textData"
+		adnroid:title="TextData Example">
+	</EditTextPreference>
+	<CheckBoxPreference android:order="2" android:key="enabledData"
+		adnroid:title="CheckBox Example">
+	</CheckBoxPreference>
+	<PreferenceCategory android:order="3" android:title="categoria"
+	QUesto sopra serve per creare un gruppo di preferenze leggermente staccato dal resto
+	....
+
+Non ho finito di copiare l'esempio e tt la schermata dopo con gli attributi
+
+----
+
+Esempio
+
+public class MyPReferenceActivity extends PreferenceActivity {
+
+	@Override
+	public void onCreate(Bundle savedInstaceState){
+	super.onCreate(savedInstanceState);
+	addPreferencesFromResource (R.xml.my_preferences);
+	}
+}
+
+Accesso alle preferenze
+
+----
+
+Memoria interna
+
+Ogni app dispone di una "sandbox"
+
+Per leggere un file:
+	public abstract FileInputStream openFileInput (String name)
+Per scrivere un file:
+publicFile
+.... non ho finito di copiare
+
+----
+
+Esempio
+try{
+	FileOutputStream fos = openFileOutput (FILE_PATH, mode);
+	DataOutputStream dos = new DataOutputStream(fos); //Questo metodo è un po' più potente perchè può scrivere
+	dos.writeUTF(inputData.toString());		  //direttamente stringhe... comunque sia si basano tutti sullo stream
+	dos.close();
+	output.setTextColor(SUCCESS_COLOR);
+	output.setText(R.string.ok_message);
+} catch (IOException e) {
+	e.printStackTrace();
+	output.setTextColor(ERROR_COLOR);
+	output.setText(e.getMessage());
+}
+
+try{
+	FileInputStream fis = new FileInputStream (new File(FILE_PATH));
+	DataInputStream dis = new DataInputStream(fis);
+.... non ho finito di copiare
+
+----
+Cosa cambia tra memoria interna ed esterna?
+
+come si inizializza!
+
+Infatti il sistema operativo cambia il percorso della memoria esterna in base al cell
+
+Il path va cheisto ad Android
+File sdcardDir = Environment.getExternalStorageDirectory();
+File file = new File(sdcardDir, FILE_PATH);
+
+Serve il seguente permesso per scrivere (leggere lo può sempre fare)
+-android.permission.WRITE_EXTERNAL_STORAGE
+
+----
+
+Esempio
+try{
+	//Otteniamo la root della memoria esterna
+	File sdcardDir = Environment.getExternalStorageDirectory();
+	File file = new File(sdcardDir,FILE_PATH);
+
+	FileOutputStream fos = new FileOutputStream(file)
+	DataOutputStream dos = new DataOutputStream(fos);
+	dos.writeUTF(inputData.toString());		 
+	dos.close(); //di solito il close si deve mettere nel finally? che sta oltre il catch... è utile per chiudere lo stream in caso di ecezzione
+	output.setTextColor(SUCCESS_COLOR);
+	output.setText(R.string.ok_message);
+} catch (IOException e) {
+	e.printStackTrace();
+	output.setTextColor(ERROR_COLOR);
+	output.setText(e.getMessage());
+}
+
+----
+
+Stato della memoria
+
+boolean mExternalStorageAvailable = false;
+boolean mExternalStorageWriteable = false;
+String state = Environment.getExternalStorageState();
+
+if (Environment.MEDIA_MOUNTED.equals(state)
+.... non ho finito di copiare
+
+----
+
+File nell'apk
+
+File nella cartella /res/raw
+
+public InputStream openRawResource (int id)
+	-della classe Risorse
+	-in una activity posso fare getResources()
+
+File nella cartella /asset
+
+----
+
+SLIDE DEL PROFESSORE!
+
+######## JAVA IO ########
+
+BufferedReader br = new BUfferedReader(new FileREader ("readme.txt"));
+br.readLine(); //In pratica prende il bufferedreader e lo interpreta come file fatto a righe... in pratica fino a quando non c'è un \n continua a leggere
+
+Reader r = new BufferedReader(new FileReader("readme.txt"));
+r.read(); //lavora a caratteri
+
+// per i file zippati
+FileInputStram fis = new FileInputStram("/objects.gz");
+BufferedInputStram bis new BufferedInputStream(fis);
+GzipInputStream gis = new GzipInputStream(bis);
+ObjectInputStream ois = new ObjectInputStream(gis);
+SomeObject someObject = (SomeObject) ois.readObject();
+
+----
+
+Per fare tutte queste operazioni insieme si usa il pattern Decorator
+capire la slide contenente l'uml del decorator
+
+----
+
+Buffered si parla di caratteri
+Stream si parla di byte
+
+La classe che fa tt ciò è la java.io
